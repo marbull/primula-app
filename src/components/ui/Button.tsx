@@ -3,22 +3,60 @@
 import { cn, createRippleEffect, prefersHighContrast, handleKeyboardEvent } from '@/lib/utils';
 import { ButtonHTMLAttributes, ReactNode, useEffect, useState, useRef, KeyboardEvent } from 'react';
 
+/**
+ * Buttonコンポーネント - Material Design 3に準拠したボタン
+ * 
+ * このコンポーネントは以下の機能を提供します：
+ * - 5種類のバリアント: filled, outlined, text, elevated, tonal
+ * - 3種類のサイズ: sm, md, lg
+ * - アイコンサポート（startIcon, endIcon）
+ * - キーボードショートカットのサポート
+ * - 高コントラストモードへの対応
+ * - アクセシビリティに配慮した実装
+ * 
+ * アクセシビリティの特徴:
+ * - WAI-ARIA属性を適切に実装
+ * - キーボード操作のサポート
+ * - スクリーンリーダー対応
+ * - 状態変化の通知
+ */
+
+/** Buttonのバリアントとサイズの型定義 */
 type Variant = 'filled' | 'outlined' | 'text' | 'elevated' | 'tonal';
 type Size = 'sm' | 'md' | 'lg';
 
+/**
+ * Buttonコンポーネントのプロパティ定義
+ */
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** ボタンのスタイルバリアント */
   variant?: Variant;
+  /** ボタンのサイズ */
   size?: Size;
+  /** ローディング状態を表示するかどうか */
   isLoading?: boolean;
+  /** ボタンを幅いっぱいに表示するかどうか */
   fullWidth?: boolean;
+  /** ボタンの先頭に表示するアイコン */
   startIcon?: ReactNode;
+  /** ボタンの末尾に表示するアイコン */
   endIcon?: ReactNode;
-  iconOnly?: boolean; // アイコンのみのボタンかどうか
-  pressed?: boolean; // トグルボタンの場合
-  expanded?: boolean; // 展開可能なメニューなどの場合
-  keyboardShortcut?: string; // キーボードショートカット（例: 'ctrl+s'）
-  controlsId?: string; // 制御する要素のID（aria-controls用）
-  disableAnimation?: boolean; // アニメーションを無効にするかどうか
+  /** アイコンのみのボタンかどうか（アクセシビリティのためaria-labelの設定が必要） */
+  iconOnly?: boolean;
+  /** トグルボタンの場合の押下状態 */
+  pressed?: boolean;
+  /** 展開可能なメニューなどの場合の展開状態 */
+  expanded?: boolean;
+  /** キーボードショートカット（例: 'ctrl+s'） */
+  keyboardShortcut?: string;
+  /** 制御する要素のID（aria-controls用） */
+  controlsId?: string;
+  /** アニメーションを無効にするかどうか */
+  disableAnimation?: boolean;
+  /** 意味論的な役割を明示するためのプロパティ */
+  role?: 'button' | 'switch' | 'checkbox' | 'menuitem' | 'tab' | string;
+  /** ポップアップを持つボタンの場合trueに設定 */
+  hasPopup?: boolean;
 }
 
 export const Button = ({
@@ -39,13 +77,18 @@ export const Button = ({
   type = 'button',
   children,
   'aria-label': ariaLabel,
+  role = 'button',
+  hasPopup,
   ...props
 }: ButtonProps) => {
   // 高コントラストモードの状態を管理
   const [isHighContrast, setIsHighContrast] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // 高コントラストモードの検出
+  /**
+   * 高コントラストモードの検出とリアクティブな対応
+   * ユーザーのシステム設定が変更された場合も動的に対応します
+   */
   useEffect(() => {
     // 初期値を設定
     setIsHighContrast(prefersHighContrast());
@@ -62,6 +105,10 @@ export const Button = ({
   useEffect(() => {
     if (!keyboardShortcut) return;
 
+    /**
+     * グローバルなキーボードショートカットを処理する関数
+     * フォーカスがボタンにない状態でもショートカットを有効にします
+     */
     const keys = keyboardShortcut.toLowerCase().split('+');
     const handleGlobalKeyDown = (e: globalThis.KeyboardEvent) => {
       // ユーザーが入力フィールドにフォーカスしている場合はスキップ
@@ -119,7 +166,7 @@ export const Button = ({
       className={cn(
         // 共通のベースクラス
         'inline-flex items-center justify-center rounded-full font-medium transition-all',
-        // バリアントのスタイル
+        // バリアントのスタイル - Material Design 3に準拠
         variant === 'filled' && 'bg-primary text-on-primary hover:bg-primary-dark active:bg-primary-darker',
         variant === 'outlined' && 'border border-outline text-primary hover:bg-primary-container/10 active:bg-primary-container/20',
         variant === 'text' && 'text-primary hover:bg-primary/10 active:bg-primary/20',
@@ -144,14 +191,17 @@ export const Button = ({
         className
       )}
       onClick={(e) => {
+        // リップルエフェクトの適用（非活性化やローディング中、アニメーション無効時を除く）
         if (!disabled && !isLoading && !disableAnimation) {
           createRippleEffect(e);
         }
+        // 元のonClickハンドラを呼び出し
         if (!disabled && !isLoading && props.onClick) {
           props.onClick(e);
         }
       }}
       onKeyDown={handleKeyDown}
+      // アクセシビリティ属性の設定
       disabled={disabled || isLoading}
       aria-disabled={disabled || isLoading ? true : undefined}
       aria-busy={isLoading ? true : undefined}
@@ -162,6 +212,14 @@ export const Button = ({
       tabIndex={disabled || isLoading ? -1 : 0}
       type={type}
       aria-label={iconOnly ? ariaLabel : undefined}
+      role={
+        // 役割を自動推論
+        pressed !== undefined ? 'switch' : 
+        expanded !== undefined ? 'button' : 
+        role
+      }
+      aria-haspopup={hasPopup || expanded !== undefined ? true : undefined}
+      aria-live={isLoading ? "polite" : undefined}
       {...props}
     >
       <span className="ripple-container relative overflow-hidden">
@@ -182,9 +240,25 @@ export const Button = ({
           />
         ) : (
           <div className="inline-flex items-center justify-center">
-            {startIcon && <span className="mr-2" aria-hidden={!iconOnly || !!children}>{startIcon}</span>}
+            {startIcon && (
+              <span 
+                className="mr-2" 
+                aria-hidden={iconOnly ? undefined : "true"} 
+                role={iconOnly ? "img" : undefined}
+              >
+                {startIcon}
+              </span>
+            )}
             {children}
-            {endIcon && <span className="ml-2" aria-hidden={!iconOnly || !!children}>{endIcon}</span>}
+            {endIcon && (
+              <span 
+                className="ml-2" 
+                aria-hidden={iconOnly ? undefined : "true"} 
+                role={iconOnly ? "img" : undefined}
+              >
+                {endIcon}
+              </span>
+            )}
             {keyboardShortcut && (
               <span className="ml-2 text-xs opacity-70" aria-hidden="true">
                 {keyboardShortcut.replace(/\+/g, ' + ').replace(/ctrl/i, 'Ctrl').replace(/alt/i, 'Alt').replace(/shift/i, 'Shift').replace(/meta|cmd|command/i, 'Cmd')}
