@@ -163,7 +163,7 @@ export const Fab = ({
       aria-keyshortcuts={keyboardShortcut}
       {...props}
     >
-      <span className="ripple-container relative overflow-hidden flex items-center justify-center">
+      <span className="ripple-container rounded-full w-full h-full">
         <span aria-hidden={!!label || !!extended}>
           {icon}
         </span>

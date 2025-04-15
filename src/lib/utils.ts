@@ -12,10 +12,30 @@ export function createRippleEffect(event: React.MouseEvent<HTMLElement>) {
   }
 
   const button = event.currentTarget;
+  
+  // リップルコンテナを取得またはない場合は作成
+  let rippleContainer = button.querySelector('.ripple-container') as HTMLElement;
+  if (!rippleContainer) {
+    rippleContainer = document.createElement('span');
+    rippleContainer.className = 'ripple-container';
+    button.appendChild(rippleContainer);
+  }
+  
+  // 既存のリップルをクリア（複数重ねないため）
+  const existingRipples = rippleContainer.querySelectorAll('.ripple-effect');
+  existingRipples.forEach(ripple => ripple.remove());
+  
   const ripple = document.createElement('span');
   const rect = button.getBoundingClientRect();
   
-  const size = Math.max(rect.width, rect.height);
+  // ボタンの形状に合わせて計算
+  const isRounded = button.classList.contains('rounded-full') || 
+                    window.getComputedStyle(button).borderRadius === '50%';
+  
+  // リップルの大きさを決定（ボタンの対角線の長さ）
+  const size = Math.max(rect.width, rect.height) * 2;
+  
+  // クリック位置を中心にリップルを配置
   const x = event.clientX - rect.left - size / 2;
   const y = event.clientY - rect.top - size / 2;
   
@@ -24,12 +44,23 @@ export function createRippleEffect(event: React.MouseEvent<HTMLElement>) {
   ripple.style.left = `${x}px`;
   ripple.style.top = `${y}px`;
   
-  ripple.className = 'ripple-effect';
-  button.querySelector('.ripple-container')?.appendChild(ripple);
+  // 丸いボタンには丸いリップル、そうでなければボタンのborder-radiusを使用
+  if (isRounded) {
+    ripple.style.borderRadius = '50%';
+  } else {
+    const borderRadius = window.getComputedStyle(button).borderRadius;
+    if (borderRadius && borderRadius !== '0px') {
+      ripple.style.borderRadius = borderRadius;
+    }
+  }
   
+  ripple.className = 'ripple-effect';
+  rippleContainer.appendChild(ripple);
+  
+  // アニメーション完了後にリップルを削除
   setTimeout(() => {
     ripple.remove();
-  }, 600); // アニメーション完了後に要素を削除
+  }, 600);
 }
 
 // モーション軽減の設定を取得するユーティリティ

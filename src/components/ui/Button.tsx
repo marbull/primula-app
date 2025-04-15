@@ -388,7 +388,7 @@ export const Button = ({
       aria-live={isLoading ? "polite" : undefined}
       {...props}
     >
-      <span className="ripple-container relative overflow-hidden">
+      <span className="ripple-container overflow-hidden">
         {isLoading ? (
           renderLoadingIndicator()
         ) : (
