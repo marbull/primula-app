@@ -137,8 +137,6 @@ export const Button = ({
 }: ButtonProps) => {
   // 高コントラストモードの状態
   const [isHighContrast, setIsHighContrast] = useState(false);
-  // ダークモード検出（クライアント側でのみ実行）
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   /**
@@ -152,33 +150,6 @@ export const Button = ({
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
-
-  /**
-   * ダークモード検出と動的対応
-   */
-  useEffect(() => {
-    // クライアントサイドでのダークモード検出
-    if (typeof window !== 'undefined') {
-      // 初期値設定
-      setIsDarkMode(window.matchMedia('(prefers-color-scheme: dark)').matches);
-      
-      // 変更検出
-      const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleDarkModeChange = (e: MediaQueryListEvent) => {
-        setIsDarkMode(e.matches);
-      };
-      
-      darkModeQuery.addEventListener('change', handleDarkModeChange);
-      return () => darkModeQuery.removeEventListener('change', handleDarkModeChange);
-    }
-  }, []);
-
-  // iconOnly モードで aria-label がない場合の警告
-  useEffect(() => {
-    if (iconOnly && !ariaLabel && process.env.NODE_ENV !== 'production') {
-      console.warn('Button: iconOnly=true のときは aria-label プロパティを必ず指定してください。アクセシビリティ上の問題があります。');
-    }
-  }, [iconOnly, ariaLabel]);
 
   // キーボードショートカット処理
   useEffect(() => {
@@ -286,12 +257,12 @@ export const Button = ({
           <div
             className={cn(
               'h-4 w-4 animate-spin rounded-full border-2 border-t-transparent',
-              variant === 'filled' && 'border-on-primary dark:border-on-primary-dark',
-              variant === 'outlined' && 'border-primary dark:border-primary-dark',
-              variant === 'text' && 'border-primary dark:border-primary-dark',
-              variant === 'elevated' && 'border-primary dark:border-primary-dark',
-              variant === 'tonal' && 'border-on-secondary-container dark:border-on-secondary-container-dark',
-              isHighContrast && 'border-black border-t-transparent dark:border-white dark:border-t-transparent'
+              variant === 'filled' && 'border-on-primary',
+              variant === 'outlined' && 'border-primary',
+              variant === 'text' && 'border-primary',
+              variant === 'elevated' && 'border-primary',
+              variant === 'tonal' && 'border-on-secondary-container',
+              isHighContrast && 'border-black border-t-transparent'
             )}
             aria-label="Loading"
             role="status"
@@ -320,29 +291,15 @@ export const Button = ({
     }
   };
 
-  // カスタムCSSプロパティの型定義
-  interface CustomCSSProperties extends React.CSSProperties {
-    '--hover-bg-color'?: string;
-    '--active-bg-color'?: string;
-  }
-
   // カスタムスタイル生成
   const getCustomStyles = () => {
-    if (!useCustomColors && !hoverBgColor && !activeBgColor) return {};
+    if (!useCustomColors) return {};
 
-    const styles: CustomCSSProperties = {};
+    const styles: React.CSSProperties = {};
     
     if (customBgColor) styles.backgroundColor = customBgColor;
     if (customTextColor) styles.color = customTextColor;
     if (customBorderColor) styles.borderColor = customBorderColor;
-    
-    // Tailwind JITが動作しない環境向けのフォールバック
-    if (hoverBgColor) {
-      styles['--hover-bg-color'] = hoverBgColor;
-    }
-    if (activeBgColor) {
-      styles['--active-bg-color'] = activeBgColor;
-    }
     
     return styles;
   };
@@ -354,29 +311,12 @@ export const Button = ({
     const classes = [];
     if (hoverBgColor) {
       classes.push(`hover:bg-[${hoverBgColor}]`);
-      // フォールバック用CSSクラス
-      classes.push('hover:has-custom-hover-bg');
     }
     if (activeBgColor) {
       classes.push(`active:bg-[${activeBgColor}]`);
-      // フォールバック用CSSクラス
-      classes.push('active:has-custom-active-bg');
     }
     
     return classes.join(' ');
-  };
-
-  // roleの決定ロジック
-  const getRole = (): string => {
-    // 明示的に指定されたroleを最優先
-    if (role && role !== 'button') return role;
-    
-    // 状態に基づく自動決定
-    if (pressed !== undefined) return 'switch';
-    if (expanded !== undefined) return 'button';
-    
-    // デフォルト
-    return 'button';
   };
 
   return (
@@ -387,29 +327,31 @@ export const Button = ({
         'inline-flex items-center justify-center font-medium transition-all',
         // 角丸スタイル
         getRoundedStyle(),
-        // Material Design 3バリアント (ダークモード対応)
-        variant === 'filled' && 'bg-primary text-on-primary hover:bg-primary-dark active:bg-primary-darker dark:bg-primary-dark dark:text-on-primary-dark dark:hover:bg-primary dark:active:bg-primary-light',
-        variant === 'outlined' && 'border border-outline text-primary hover:bg-primary-container/10 active:bg-primary-container/20 dark:border-outline-dark dark:text-primary-dark dark:hover:bg-primary-container-dark/10 dark:active:bg-primary-container-dark/20',
-        variant === 'text' && 'text-primary hover:bg-primary/10 active:bg-primary/20 dark:text-primary-dark dark:hover:bg-primary-dark/10 dark:active:bg-primary-dark/20',
-        variant === 'elevated' && 'bg-surface text-primary shadow-sm hover:shadow-md active:bg-surface-variant dark:bg-surface-dark dark:text-primary-dark dark:active:bg-surface-variant-dark',
-        variant === 'tonal' && 'bg-secondary-container text-on-secondary-container hover:bg-secondary-container-dark active:bg-secondary-container-darker dark:bg-secondary-container-dark dark:text-on-secondary-container-dark dark:hover:bg-secondary-container dark:active:bg-secondary-container-light',
+        // Material Design 3バリアント
+        variant === 'filled' && 'bg-primary text-on-primary hover:bg-primary-dark active:bg-primary-darker',
+        variant === 'outlined' && 'border border-outline text-primary hover:bg-primary-container/10 active:bg-primary-container/20',
+        variant === 'text' && 'text-primary hover:bg-primary/10 active:bg-primary/20',
+        variant === 'elevated' && 'bg-surface text-primary shadow-sm hover:shadow-md active:bg-surface-variant',
+        variant === 'tonal' && 'bg-secondary-container text-on-secondary-container hover:bg-secondary-container-dark active:bg-secondary-container-darker',
         useCustomColors && 'border',
         // カスタムステートクラス
         getCustomStateClasses(),
-        // 高コントラストモード (ダークモード対応)
-        isHighContrast && variant === 'filled' && 'bg-primary text-white border-2 border-black dark:bg-primary-dark dark:text-black dark:border-white',
-        isHighContrast && variant === 'outlined' && 'border-2 border-black text-black dark:border-white dark:text-white',
-        isHighContrast && variant === 'text' && 'text-black underline dark:text-white',
-        isHighContrast && variant === 'elevated' && 'bg-white text-black border-2 border-black shadow-none dark:bg-black dark:text-white dark:border-white',
-        isHighContrast && variant === 'tonal' && 'bg-gray-200 text-black border-2 border-black dark:bg-gray-800 dark:text-white dark:border-white',
+        // 高コントラストモード
+        isHighContrast && variant === 'filled' && 'bg-primary text-white border-2 border-black',
+        isHighContrast && variant === 'outlined' && 'border-2 border-black text-black',
+        isHighContrast && variant === 'text' && 'text-black underline',
+        isHighContrast && variant === 'elevated' && 'bg-white text-black border-2 border-black shadow-none',
+        isHighContrast && variant === 'tonal' && 'bg-gray-200 text-black border-2 border-black',
         // サイズ
         size === 'sm' && 'h-8 px-4 text-sm gap-2',  
         size === 'md' && 'h-10 px-6 text-base gap-2',  
         size === 'lg' && 'h-12 px-8 text-lg gap-3',  
         fullWidth && 'w-full',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 dark:focus-visible:ring-primary-dark/50',
-        isHighContrast && 'focus-visible:ring-black focus-visible:ring-offset-0 dark:focus-visible:ring-white',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2',
+        isHighContrast && 'focus-visible:ring-black focus-visible:ring-offset-0',
         disableAnimation && 'transition-none',
+        // Material Design 3に準拠したdisable状態の透明度 (38%)
+        (disabled || isLoading) && 'opacity-[0.38] pointer-events-none',
         className
       )}
       style={getCustomStyles()}
@@ -439,29 +381,33 @@ export const Button = ({
       tabIndex={disabled || isLoading ? -1 : 0}
       type={type}
       aria-label={iconOnly ? ariaLabel : undefined}
-      role={getRole()}
+      role={
+        pressed !== undefined ? 'switch' : 
+        expanded !== undefined ? 'button' : 
+        role
+      }
       aria-haspopup={hasPopup || expanded !== undefined ? true : undefined}
       aria-live={isLoading ? "polite" : undefined}
       {...props}
     >
-      <span className="ripple-container overflow-hidden" data-testid="ripple-container">
+      <span className="ripple-container overflow-hidden">
         {isLoading ? (
           renderLoadingIndicator()
         ) : (
-          <div className="inline-flex items-center justify-center w-full">
+          <div className="inline-flex items-center justify-center">
             {startIcon && (
               <span 
-                className="mr-2 flex-shrink-0" 
+                className="mr-2" 
                 aria-hidden={iconOnly ? undefined : "true"} 
                 role={iconOnly ? "img" : undefined}
               >
                 {startIcon}
               </span>
             )}
-            <span className={keyboardShortcut ? 'flex-grow' : ''}>{children}</span>
+            {children}
             {endIcon && (
               <span 
-                className="ml-2 flex-shrink-0" 
+                className="ml-2" 
                 aria-hidden={iconOnly ? undefined : "true"} 
                 role={iconOnly ? "img" : undefined}
               >
@@ -469,7 +415,7 @@ export const Button = ({
               </span>
             )}
             {keyboardShortcut && (
-              <span className="ml-auto pl-2 text-xs opacity-70 flex-shrink-0" aria-hidden="true">
+              <span className="ml-2 text-xs opacity-70" aria-hidden="true">
                 {keyboardShortcut.replace(/\+/g, ' + ').replace(/ctrl/i, 'Ctrl').replace(/alt/i, 'Alt').replace(/shift/i, 'Shift').replace(/meta|cmd|command/i, 'Cmd')}
               </span>
             )}
