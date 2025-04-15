@@ -4,96 +4,146 @@ import { cn, createRippleEffect, prefersHighContrast, handleKeyboardEvent } from
 import { ButtonHTMLAttributes, ReactNode, useEffect, useState, useRef, KeyboardEvent } from 'react';
 
 /**
- * Buttonコンポーネント - Material Design 3に準拠したボタン
+ * Material Design 3に準拠したButtonコンポーネント
  * 
- * このコンポーネントは以下の機能を提供します：
- * - 5種類のバリアント: filled, outlined, text, elevated, tonal
- * - 3種類のサイズ: sm, md, lg
- * - アイコンサポート（startIcon, endIcon）
- * - キーボードショートカットのサポート
- * - 高コントラストモードへの対応
- * - アクセシビリティに配慮した実装
- * 
- * アクセシビリティの特徴:
- * - WAI-ARIA属性を適切に実装
- * - キーボード操作のサポート
- * - スクリーンリーダー対応
- * - 状態変化の通知
+ * 特徴:
+ * - バリアント: filled, outlined, text, elevated, tonal
+ * - サイズ: sm, md, lg
+ * - アイコン対応（startIcon, endIcon）
+ * - キーボードショートカット機能
+ * - 高コントラストモード対応
+ * - アクセシビリティ対応（WAI-ARIA, キーボード操作, スクリーンリーダー）
+ * - カスタマイズ機能（色, 形状, エフェクト）
  */
 
-/** Buttonのバリアントとサイズの型定義 */
+/** 型定義 */
+// ボタンのスタイルバリエーション
 type Variant = 'filled' | 'outlined' | 'text' | 'elevated' | 'tonal';
+// ボタンのサイズ
 type Size = 'sm' | 'md' | 'lg';
+// 角丸のスタイル
+type RoundedStyle = 'full' | 'lg' | 'md' | 'sm' | 'none';
+// ローディングインジケーターの種類
+type LoadingIndicatorType = 'spinner' | 'dots' | 'progress' | 'custom';
 
 /**
- * Buttonコンポーネントのプロパティ定義
+ * Buttonコンポーネントのプロパティ
  */
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  /** ボタンのスタイルバリアント */
+  /***** コア機能関連 *****/
+  /** スタイルバリアント */
   variant?: Variant;
-  /** ボタンのサイズ */
+  /** サイズ */
   size?: Size;
-  /** ローディング状態を表示するかどうか */
-  isLoading?: boolean;
-  /** ボタンを幅いっぱいに表示するかどうか */
+  /** 幅いっぱいに表示 */
   fullWidth?: boolean;
-  /** ボタンの先頭に表示するアイコン */
+  /** 先頭アイコン */
   startIcon?: ReactNode;
-  /** ボタンの末尾に表示するアイコン */
+  /** 末尾アイコン */
   endIcon?: ReactNode;
-  /** アイコンのみのボタンかどうか（アクセシビリティのためaria-labelの設定が必要） */
+  /** アイコンのみボタン（aria-label必須） */
   iconOnly?: boolean;
-  /** トグルボタンの場合の押下状態 */
+  /** ローディング状態 */
+  isLoading?: boolean;
+  /** 角丸スタイル */
+  rounded?: RoundedStyle;
+  
+  /***** 状態・相互作用関連 *****/
+  /** トグル状態 */
   pressed?: boolean;
-  /** 展開可能なメニューなどの場合の展開状態 */
+  /** 展開状態 */
   expanded?: boolean;
-  /** キーボードショートカット（例: 'ctrl+s'） */
+  /** キーボードショートカット (例: 'ctrl+s') */
   keyboardShortcut?: string;
-  /** 制御する要素のID（aria-controls用） */
+  /** 制御対象要素ID (aria-controls) */
   controlsId?: string;
-  /** アニメーションを無効にするかどうか */
+  /** アニメーション無効化 */
   disableAnimation?: boolean;
-  /** 意味論的な役割を明示するためのプロパティ */
+  
+  /***** アクセシビリティ関連 *****/
+  /** セマンティック役割 */
   role?: 'button' | 'switch' | 'checkbox' | 'menuitem' | 'tab' | string;
-  /** ポップアップを持つボタンの場合trueに設定 */
+  /** ポップアップ有無 */
   hasPopup?: boolean;
+  
+  /***** カスタマイズ関連 *****/
+  /** カスタム色使用フラグ */
+  useCustomColors?: boolean;
+  /** 背景色 */
+  customBgColor?: string;
+  /** テキスト色 */
+  customTextColor?: string;
+  /** ボーダー色 */
+  customBorderColor?: string;
+  /** ホバー時背景色 */
+  hoverBgColor?: string;
+  /** アクティブ時背景色 */
+  activeBgColor?: string;
+  
+  /***** エフェクト関連 *****/
+  /** リップルエフェクト色 */
+  rippleColor?: string;
+  /** リップルエフェクト持続時間(ms) */
+  rippleDuration?: number;
+  /** ローディング表示タイプ */
+  loadingIndicatorType?: LoadingIndicatorType;
+  /** カスタムローディング要素 */
+  customLoadingIndicator?: ReactNode;
 }
 
 export const Button = ({
-  className,
+  // コア機能関連
   variant = 'filled',
   size = 'md',
-  isLoading = false,
   fullWidth = false,
   startIcon,
   endIcon,
   iconOnly = false,
+  isLoading = false,
+  rounded = 'full',
+  
+  // 状態・相互作用関連
   pressed,
   expanded,
   keyboardShortcut,
   controlsId,
   disableAnimation = false,
   disabled,
-  type = 'button',
-  children,
+  
+  // アクセシビリティ関連
   'aria-label': ariaLabel,
   role = 'button',
   hasPopup,
+  
+  // カスタマイズ関連
+  useCustomColors = false,
+  customBgColor,
+  customTextColor,
+  customBorderColor,
+  hoverBgColor,
+  activeBgColor,
+  
+  // エフェクト関連
+  rippleColor,
+  rippleDuration = 600,
+  loadingIndicatorType = 'spinner',
+  customLoadingIndicator,
+  
+  // その他の標準属性
+  type = 'button',
+  children,
+  className,
   ...props
 }: ButtonProps) => {
-  // 高コントラストモードの状態を管理
+  // 高コントラストモードの状態
   const [isHighContrast, setIsHighContrast] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   /**
-   * 高コントラストモードの検出とリアクティブな対応
-   * ユーザーのシステム設定が変更された場合も動的に対応します
+   * 高コントラストモード検出と動的対応
    */
   useEffect(() => {
-    // 初期値を設定
     setIsHighContrast(prefersHighContrast());
-
-    // 変更を監視
     const mediaQuery = window.matchMedia('(prefers-contrast: more), (prefers-contrast: high)');
     const handleChange = () => setIsHighContrast(prefersHighContrast());
     
@@ -101,28 +151,25 @@ export const Button = ({
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  // キーボードショートカットの処理
+  // キーボードショートカット処理
   useEffect(() => {
     if (!keyboardShortcut) return;
 
-    /**
-     * グローバルなキーボードショートカットを処理する関数
-     * フォーカスがボタンにない状態でもショートカットを有効にします
-     */
+    // グローバルキーボードショートカット処理
     const keys = keyboardShortcut.toLowerCase().split('+');
     const handleGlobalKeyDown = (e: globalThis.KeyboardEvent) => {
-      // ユーザーが入力フィールドにフォーカスしている場合はスキップ
+      // 入力フィールドでは無効化
       if (['input', 'textarea', 'select'].includes((e.target as HTMLElement)?.tagName?.toLowerCase())) {
         return;
       }
 
-      // ショートカットキーの条件をチェック
+      // モディファイアキー判定
       const ctrlKey = keys.includes('ctrl') || keys.includes('control');
       const altKey = keys.includes('alt');
       const shiftKey = keys.includes('shift');
       const metaKey = keys.includes('meta') || keys.includes('cmd') || keys.includes('command');
       
-      // 最後のキーはモディファイアではなく実際のキー
+      // 実際のキー（モディファイア以外）
       const mainKey = keys.filter(k => !['ctrl', 'control', 'alt', 'shift', 'meta', 'cmd', 'command'].includes(k))[0];
       
       if (
@@ -143,14 +190,44 @@ export const Button = ({
     return () => document.removeEventListener('keydown', handleGlobalKeyDown);
   }, [keyboardShortcut, disabled, isLoading]);
 
-  // キーボードイベントハンドラー
+  // リップルエフェクト処理
+  const handleRippleEffect = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (disableAnimation || disabled || isLoading) return;
+    
+    const button = e.currentTarget;
+    const ripple = document.createElement('span');
+    const rect = button.getBoundingClientRect();
+    
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    
+    ripple.style.width = `${size}px`;
+    ripple.style.height = `${size}px`;
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
+    
+    // カスタムリップル色適用
+    if (rippleColor) {
+      ripple.style.backgroundColor = rippleColor;
+    }
+    
+    ripple.className = 'ripple-effect';
+    button.querySelector('.ripple-container')?.appendChild(ripple);
+    
+    // 指定時間後に削除
+    setTimeout(() => {
+      ripple.remove();
+    }, rippleDuration);
+  };
+
+  // キーボードイベント処理
   const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
-    // 元のonKeyDownがある場合は呼び出す
     if (props.onKeyDown) {
       props.onKeyDown(e);
     }
 
-    // Spaceキーでクリックと同じ効果を発生させる
+    // Spaceキーでクリック効果
     handleKeyboardEvent(e, {
       ' ': () => {
         if (!disabled && !isLoading && buttonRef.current) {
@@ -160,48 +237,138 @@ export const Button = ({
     });
   };
 
+  // 角丸スタイル決定
+  const getRoundedStyle = () => {
+    switch (rounded) {
+      case 'full': return 'rounded-full';
+      case 'lg': return 'rounded-lg';
+      case 'md': return 'rounded-md';
+      case 'sm': return 'rounded-sm';
+      case 'none': return 'rounded-none';
+      default: return 'rounded-full';
+    }
+  };
+
+  // ローディングインジケーター生成
+  const renderLoadingIndicator = () => {
+    switch (loadingIndicatorType) {
+      case 'spinner':
+        return (
+          <div
+            className={cn(
+              'h-4 w-4 animate-spin rounded-full border-2 border-t-transparent',
+              variant === 'filled' && 'border-on-primary',
+              variant === 'outlined' && 'border-primary',
+              variant === 'text' && 'border-primary',
+              variant === 'elevated' && 'border-primary',
+              variant === 'tonal' && 'border-on-secondary-container',
+              isHighContrast && 'border-black border-t-transparent'
+            )}
+            aria-label="Loading"
+            role="status"
+          />
+        );
+      case 'dots':
+        return (
+          <div className="flex space-x-1" aria-label="Loading" role="status">
+            <div className={`h-2 w-2 rounded-full ${variant === 'filled' ? 'bg-on-primary' : 'bg-primary'} animate-bounce`} style={{ animationDelay: '0ms' }}></div>
+            <div className={`h-2 w-2 rounded-full ${variant === 'filled' ? 'bg-on-primary' : 'bg-primary'} animate-bounce`} style={{ animationDelay: '150ms' }}></div>
+            <div className={`h-2 w-2 rounded-full ${variant === 'filled' ? 'bg-on-primary' : 'bg-primary'} animate-bounce`} style={{ animationDelay: '300ms' }}></div>
+          </div>
+        );
+      case 'progress':
+        return (
+          <div className="w-12 h-1 bg-gray-200 overflow-hidden rounded-full" aria-label="Loading" role="status">
+            <div className={`h-full ${variant === 'filled' ? 'bg-on-primary' : 'bg-primary'} animate-progressBar`}></div>
+          </div>
+        );
+      case 'custom':
+        return customLoadingIndicator || (
+          <div className="h-4 w-4 animate-pulse" aria-label="Loading" role="status"></div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // カスタムスタイル生成
+  const getCustomStyles = () => {
+    if (!useCustomColors) return {};
+
+    const styles: React.CSSProperties = {};
+    
+    if (customBgColor) styles.backgroundColor = customBgColor;
+    if (customTextColor) styles.color = customTextColor;
+    if (customBorderColor) styles.borderColor = customBorderColor;
+    
+    return styles;
+  };
+
+  // カスタムホバー/アクティブクラス生成
+  const getCustomStateClasses = () => {
+    if (!hoverBgColor && !activeBgColor) return '';
+    
+    const classes = [];
+    if (hoverBgColor) {
+      classes.push(`hover:bg-[${hoverBgColor}]`);
+    }
+    if (activeBgColor) {
+      classes.push(`active:bg-[${activeBgColor}]`);
+    }
+    
+    return classes.join(' ');
+  };
+
   return (
     <button
       ref={buttonRef}
       className={cn(
-        // 共通のベースクラス
-        'inline-flex items-center justify-center rounded-full font-medium transition-all',
-        // バリアントのスタイル - Material Design 3に準拠
+        // ベースクラス
+        'inline-flex items-center justify-center font-medium transition-all',
+        // 角丸スタイル
+        getRoundedStyle(),
+        // Material Design 3バリアント
         variant === 'filled' && 'bg-primary text-on-primary hover:bg-primary-dark active:bg-primary-darker',
         variant === 'outlined' && 'border border-outline text-primary hover:bg-primary-container/10 active:bg-primary-container/20',
         variant === 'text' && 'text-primary hover:bg-primary/10 active:bg-primary/20',
         variant === 'elevated' && 'bg-surface text-primary shadow-sm hover:shadow-md active:bg-surface-variant',
         variant === 'tonal' && 'bg-secondary-container text-on-secondary-container hover:bg-secondary-container-dark active:bg-secondary-container-darker',
-        // 高コントラストモードのスタイル
+        useCustomColors && 'border',
+        // カスタムステートクラス
+        getCustomStateClasses(),
+        // 高コントラストモード
         isHighContrast && variant === 'filled' && 'bg-primary text-white border-2 border-black',
         isHighContrast && variant === 'outlined' && 'border-2 border-black text-black',
         isHighContrast && variant === 'text' && 'text-black underline',
         isHighContrast && variant === 'elevated' && 'bg-white text-black border-2 border-black shadow-none',
         isHighContrast && variant === 'tonal' && 'bg-gray-200 text-black border-2 border-black',
-        // サイズ別の定義
+        // サイズ
         size === 'sm' && 'h-8 px-4 text-sm gap-2',  
         size === 'md' && 'h-10 px-6 text-base gap-2',  
         size === 'lg' && 'h-12 px-8 text-lg gap-3',  
         fullWidth && 'w-full',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2',
-        // 高コントラストモードでのフォーカス表示
         isHighContrast && 'focus-visible:ring-black focus-visible:ring-offset-0',
-        // モーション軽減またはアニメーション無効時
-        (disableAnimation) && 'transition-none',
+        disableAnimation && 'transition-none',
         className
       )}
+      style={getCustomStyles()}
       onClick={(e) => {
-        // リップルエフェクトの適用（非活性化やローディング中、アニメーション無効時を除く）
+        // リップルエフェクト適用
         if (!disabled && !isLoading && !disableAnimation) {
-          createRippleEffect(e);
+          if (rippleColor || rippleDuration !== 600) {
+            handleRippleEffect(e);
+          } else {
+            createRippleEffect(e);
+          }
         }
-        // 元のonClickハンドラを呼び出し
+        // イベントハンドラ呼び出し
         if (!disabled && !isLoading && props.onClick) {
           props.onClick(e);
         }
       }}
       onKeyDown={handleKeyDown}
-      // アクセシビリティ属性の設定
+      // アクセシビリティ属性
       disabled={disabled || isLoading}
       aria-disabled={disabled || isLoading ? true : undefined}
       aria-busy={isLoading ? true : undefined}
@@ -213,7 +380,6 @@ export const Button = ({
       type={type}
       aria-label={iconOnly ? ariaLabel : undefined}
       role={
-        // 役割を自動推論
         pressed !== undefined ? 'switch' : 
         expanded !== undefined ? 'button' : 
         role
@@ -224,20 +390,7 @@ export const Button = ({
     >
       <span className="ripple-container relative overflow-hidden">
         {isLoading ? (
-          <div
-            className={cn(
-              'h-4 w-4 animate-spin rounded-full border-2 border-t-transparent',
-              variant === 'filled' && 'border-on-primary',
-              variant === 'outlined' && 'border-primary',
-              variant === 'text' && 'border-primary',
-              variant === 'elevated' && 'border-primary',
-              variant === 'tonal' && 'border-on-secondary-container',
-              // 高コントラストモードでのローディングインジケーター
-              isHighContrast && 'border-black border-t-transparent'
-            )}
-            aria-label="Loading"
-            role="status"
-          />
+          renderLoadingIndicator()
         ) : (
           <div className="inline-flex items-center justify-center">
             {startIcon && (

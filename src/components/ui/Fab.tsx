@@ -7,28 +7,44 @@ type FabSize = 'small' | 'medium' | 'large';
 type FabVariant = 'regular' | 'primary' | 'secondary' | 'tertiary';
 
 interface FabProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /***** コア機能関連 *****/
+  /** サイズ */
   size?: FabSize;
+  /** バリアント */
   variant?: FabVariant;
+  /** アイコン */
   icon: ReactNode;
+  /** 拡張FAB */
   extended?: boolean;
+  /** ラベル (拡張FABの場合) */
   label?: string;
-  disableAnimation?: boolean; // アニメーションの無効化オプション
-  controlsId?: string; // 制御する要素のID
-  keyboardShortcut?: string; // キーボードショートカット
+  
+  /***** 相互作用関連 *****/
+  /** アニメーション無効化 */
+  disableAnimation?: boolean;
+  /** 制御対象要素ID */
+  controlsId?: string;
+  /** キーボードショートカット */
+  keyboardShortcut?: string;
 }
 
 export const Fab = ({
-  className,
+  // コア機能関連
   size = 'medium',
   variant = 'primary',
   icon,
   extended = false,
   label,
+  
+  // 相互作用関連
   disableAnimation = false,
   controlsId,
   keyboardShortcut,
   disabled,
+  
+  // 標準HTML属性
   'aria-label': ariaLabel,
+  className,
   ...props
 }: FabProps) => {
   // 高コントラストモードの状態を管理
